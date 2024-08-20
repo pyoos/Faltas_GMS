@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QDate
 
 class GrantManagement:
-    def __init__(self, directory_path='/Users/paul/Desktop/LGS'):
+    def __init__(self, directory_path='/Users/paul/Desktop/Faltas_GMS'):
         self.directory_path = directory_path
         self.file_path = os.path.join(self.directory_path, 'grants.csv')  # Set the file path to the specific directory
         self.required_columns = ['Grant ID', 'Grant Name', 'Total Balance', 'Allowed Items']
@@ -30,44 +30,93 @@ class GrantManagement:
                 return file_path
             else:
                 return None
-
     def load_grants(self):
-        """Load the grant data from the selected CSV file, initializing if necessary."""
-        if not self.file_path:
-            return self.initialize_csv()
-
         if os.path.exists(self.file_path):
             try:
                 data = pd.read_csv(self.file_path)
-                # Check if the necessary columns exist
                 if all(column in data.columns for column in self.required_columns):
-                    # Ensure that the 'Allowed Items' column is interpreted as a list
                     if 'Allowed Items' in data.columns:
                         data['Allowed Items'] = data['Allowed Items'].apply(eval)
                     return data
                 else:
                     QMessageBox.warning(None, "CSV Error", f"The file {self.file_path} does not contain the required columns.")
-                    # Re-initialize the CSV with the correct columns
                     return self.initialize_csv()
             except Exception as e:
                 QMessageBox.warning(None, "CSV Error", f"There was an error loading the file {self.file_path}: {str(e)}")
                 return self.initialize_csv()
         else:
-            # Initialize an empty DataFrame if the file does not exist
             return self.initialize_csv()
 
     def initialize_csv(self):
-        """Initialize the CSV file with the correct columns."""
         data = pd.DataFrame(columns=self.required_columns)
-        # Save the new empty CSV to the specified file path
         if self.file_path:
             data.to_csv(self.file_path, index=False)
         return data
 
     def save_grants(self):
-        """Save the updated grant data back to the CSV file."""
         if self.file_path:
             self.grant_data.to_csv(self.file_path, index=False)
+
+    def show_grants(self):
+        """Show all the grants in the system."""
+        try:
+            if self.grant_management.grant_data.empty:
+                QMessageBox.information(self, "No Grants", "There are no grants in the database.")
+            else:
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Existing Grants")
+                dialog.setStyleSheet("background-color: #cce7ff;")
+                dialog.resize(800, 600)
+
+                scroll = QScrollArea()
+                scroll.setWidgetResizable(True)
+
+                widget = QWidget()
+                vbox = QVBoxLayout(widget)
+
+                for _, row in self.grant_management.grant_data.iterrows():
+                    grant_id_label = QLabel(f"Grant ID: {row['Grant ID']}")
+                    grant_id_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold; margin-bottom: 5px;")
+                    vbox.addWidget(grant_id_label)
+
+                    grant_name_label = QLabel(f"Grant Name: {row['Grant Name']}")
+                    grant_name_label.setStyleSheet("font-size: 16px; color: #333; margin-bottom: 5px;")
+                    vbox.addWidget(grant_name_label)
+
+                    total_balance_label = QLabel(f"Total Balance: ${row['Total Balance']:.2f}")
+                    total_balance_label.setStyleSheet("font-size: 16px; color: #333; margin-bottom: 5px;")
+                    vbox.addWidget(total_balance_label)
+
+                    spending_rules_label = QLabel("Grant Spending Rules:")
+                    spending_rules_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold; margin-bottom: 5px;")
+                    vbox.addWidget(spending_rules_label)
+
+                    for item in row['Allowed Items']:
+                        item_label = QLabel(item)
+                        item_label.setStyleSheet("""
+                            font-size: 16px;
+                            color: #333;
+                            background-color: #f0f8ff;
+                            border: 1px solid #99c2ff;
+                            border-radius: 5px;
+                            padding: 5px;
+                            margin-bottom: 3px;
+                        """)
+                        vbox.addWidget(item_label)
+
+                    vbox.addWidget(QLabel("\n"))  # Add spacing between entries
+
+                scroll.setWidget(widget)
+
+                layout = QVBoxLayout(dialog)
+                layout.addWidget(scroll)
+
+                dialog.setLayout(layout)
+                dialog.exec_()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while displaying grants: {str(e)}")
+
 
     def get_grant_data(self, grant_name):
         """Retrieve data for a specific grant."""

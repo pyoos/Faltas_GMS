@@ -2,14 +2,13 @@ import sys
 import os
 import pandas as pd
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget,
-    QLabel, QInputDialog, QLineEdit, QMessageBox, QListWidget, QDialog,
-    QScrollArea, QVBoxLayout, QHBoxLayout, QFormLayout, QDialogButtonBox, QFileDialog, QTabWidget, QTableWidget, QTableWidgetItem
+    QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout,
+    QLabel, QMessageBox, QListWidget, QDialog, QScrollArea, QFormLayout, QDialogButtonBox,
+    QFileDialog, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView
 )
 from PyQt5.QtCore import Qt
 from datetime import datetime
 from grant_management import GrantManagement
-
 
 class GrantManagementApp(QMainWindow):
     def __init__(self):
@@ -87,6 +86,58 @@ class GrantManagementApp(QMainWindow):
         """Update the last accessed/updated timestamp to 12-hour format."""
         self.last_accessed = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
         self.timestamp_label.setText(f"Last accessed/updated: {self.last_accessed}")
+
+    def show_grants(self):
+        if self.grant_management.grant_data.empty:
+            QMessageBox.information(self, "No Grants", "There are no grants in the database.")
+        else:
+            self.display_grants_popup()
+
+    def display_grants_popup(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Existing Grants")
+        dialog.setStyleSheet("background-color: #cce7ff;")
+        dialog.resize(800, 600)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+
+        widget = QWidget()
+        vbox = QVBoxLayout(widget)
+
+        for index, row in self.grant_management.grant_data.iterrows():
+            grant_id_label = QLabel(f"Grant ID: {row['Grant ID']}")
+            grant_id_label.setStyleSheet("font-size: 16px; color: #333;")
+            vbox.addWidget(grant_id_label)
+
+            grant_name_label = QLabel(f"Grant Name: {row['Grant Name']}")
+            grant_name_label.setStyleSheet("font-size: 16px; color: #333;")
+            vbox.addWidget(grant_name_label)
+
+            total_balance_label = QLabel(f"Total Balance: ${row['Total Balance']:.2f}")
+            total_balance_label.setStyleSheet("font-size: 16px; color: #333;")
+            vbox.addWidget(total_balance_label)
+
+            spending_rules_label = QLabel("Grant Spending Rules:")
+            spending_rules_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold; margin-bottom: 5px;")
+            vbox.addWidget(spending_rules_label)
+
+            for item in row['Allowed Items']:
+                item_label = QLabel(item)
+                item_label.setStyleSheet(
+                    "font-size: 16px; color: #333; background-color: #f9f9f9; "
+                    "border: 2px solid #007BFF; padding: 5px; margin-bottom: 3px; border-radius: 5px;")
+                vbox.addWidget(item_label)
+
+            vbox.addWidget(QLabel("\n"))  # Add spacing between entries
+
+        scroll.setWidget(widget)
+
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(scroll)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     def add_initial_grants(self):
         dialog = QDialog(self)
@@ -184,7 +235,6 @@ class GrantManagementApp(QMainWindow):
             total_balance = float(total_balance)
             allowed_items_list = [items_list_widget.item(i).text() for i in range(items_list_widget.count())]
 
-            # Add the new grant using GrantManagement's add_grant method
             self.grant_management.add_grant(grant_id, grant_name, total_balance, allowed_items_list)
 
             dialog.accept()
@@ -234,56 +284,6 @@ class GrantManagementApp(QMainWindow):
         dialog.setLayout(layout)
         dialog.exec_()
 
-    def show_grants(self):
-        if self.grant_management.grant_data.empty:
-            QMessageBox.information(self, "No Grants", "There are no grants in the database.")
-        else:
-            self.display_grants_popup()
-
-    def display_grants_popup(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Existing Grants")
-        dialog.setStyleSheet("background-color: #cce7ff;")
-        dialog.resize(800, 600)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-
-        widget = QWidget()
-        vbox = QVBoxLayout(widget)
-
-        for index, row in self.grant_management.grant_data.iterrows():
-            grant_id_label = QLabel(f"Grant ID: {row['Grant ID']}")
-            grant_id_label.setStyleSheet("font-size: 16px; color: #333;")
-            vbox.addWidget(grant_id_label)
-
-            grant_name_label = QLabel(f"Grant Name: {row['Grant Name']}")
-            grant_name_label.setStyleSheet("font-size: 16px; color: #333;")
-            vbox.addWidget(grant_name_label)
-
-            total_balance_label = QLabel(f"Total Balance: ${row['Total Balance']:.2f}")
-            total_balance_label.setStyleSheet("font-size: 16px; color: #333;")
-            vbox.addWidget(total_balance_label)
-
-            allowed_items_label = QLabel("Allowed Items:")
-            allowed_items_label.setStyleSheet("font-size: 16px; color: #333;")
-            vbox.addWidget(allowed_items_label)
-
-            for item in row['Allowed Items']:
-                item_label = QLabel(item)
-                item_label.setStyleSheet("font-size: 16px; color: #333; border: 1px solid #ccc; padding: 2px;")
-                vbox.addWidget(item_label)
-
-            vbox.addWidget(QLabel("\n"))  # Add spacing between entries
-
-        scroll.setWidget(widget)
-
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(scroll)
-
-        dialog.setLayout(layout)
-        dialog.exec_()
-
     def choose_grant_for_rule(self):
         if self.grant_management.grant_data.empty:
             QMessageBox.information(self, "No Grants", "There are no grants in the database.")
@@ -325,7 +325,9 @@ class GrantManagementApp(QMainWindow):
         dialog.setLayout(layout)
         dialog.exec_()
 
+
     def add_rule(self, grant_id=None):
+        """Add spending rules to a selected grant."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add Spending Rule")
         dialog.setStyleSheet("background-color: #cce7ff;")
@@ -343,7 +345,7 @@ class GrantManagementApp(QMainWindow):
         label.setStyleSheet("font-size: 16px; color: black;")
         layout.addWidget(label)
 
-        label = QLabel("Existing Allowed Items:")
+        label = QLabel("Existing Spending Rules:")
         label.setStyleSheet("font-size: 16px; color: black;")
         layout.addWidget(label)
 
@@ -353,7 +355,7 @@ class GrantManagementApp(QMainWindow):
             rules_list_widget.addItem(item)
         layout.addWidget(rules_list_widget)
 
-        label = QLabel("Add New Allowed Item:")
+        label = QLabel("Add New Spending Rule:")
         label.setStyleSheet("font-size: 16px; color: black;")
         layout.addWidget(label)
 
@@ -416,6 +418,7 @@ class GrantManagementApp(QMainWindow):
         dialog.setLayout(layout)
         dialog.exec_()
 
+
     def add_item_to_rules(self, rules_list_widget, item_input, idx):
         item = item_input.text().strip()
         if item:
@@ -447,7 +450,6 @@ class GrantManagementApp(QMainWindow):
         super().closeEvent(event)
         QApplication.quit()
         sys.exit()
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
