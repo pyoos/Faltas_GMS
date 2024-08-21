@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import re
 from PyQt5.QtWidgets import (
@@ -11,11 +12,11 @@ class ExcelHandler:
         self.parent = parent
         self.grant_management = grant_management
         self.total_cost = 0
-        self.selected_sum_label = None  # Initialize it here for clarity
-        self.sheet_data = None  # To hold the current sheet data for date range filtering
+        self.selected_sum_label = None
+        self.sheet_data = None
+        self.saved_excel_sheets = {}  # Dictionary to store saved Excel sheets
 
     def upload_excel(self):
-        # Open a file dialog to select an Excel file
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         file_path, _ = QFileDialog.getOpenFileName(self.parent, "Upload Inventory Excel File", "", "Excel Files (*.xlsx);;All Files (*)", options=options)
@@ -24,12 +25,19 @@ class ExcelHandler:
             try:
                 # Read all sheets from the Excel file
                 excel_data = pd.read_excel(file_path, sheet_name=None)
-                self.display_excel_contents(excel_data)
+                
+                # Remove empty tabs/sheets
+                excel_data = {name: data for name, data in excel_data.items() if not data.empty}
+
+                # Save the uploaded sheets to the dictionary
+                self.saved_excel_sheets.update(excel_data)
+
+                # Display the contents
+                self.display_excel_contents(self.saved_excel_sheets)
             except Exception as e:
                 QMessageBox.critical(self.parent, "Error", f"An error occurred while uploading the Excel file: {str(e)}")
 
     def display_excel_contents(self, excel_data):
-        """Display the contents of the Excel file in the GUI, including handling NaN values."""
         dialog = QDialog(self.parent)
         dialog.setWindowTitle("Excel File Contents")
         dialog.setStyleSheet("background-color: #cce7ff;")
@@ -44,9 +52,6 @@ class ExcelHandler:
         self.has_cost_column = False  # Track if any sheet has a cost column
 
         for sheet_name, sheet_data in excel_data.items():
-            if sheet_data.empty:
-                continue
-
             # Normalize column names to lowercase
             sheet_data.columns = sheet_data.columns.str.lower()
 
@@ -163,7 +168,6 @@ class ExcelHandler:
         selected_sum = 0.0
         for selected_item in item.tableWidget().selectedItems():
             try:
-                # Clean selected values by removing $ and other non-numeric characters
                 selected_sum += float(re.sub(r'[^\d.]', '', selected_item.text()))
             except ValueError:
                 continue  # Ignore non-numeric cells
@@ -196,11 +200,11 @@ class ExcelHandler:
         selected_grant = self.grant_combo.currentText()
         selected_sum = float(re.sub(r'[^\d.]', '', self.selected_sum_label.text().split('$')[1]))
 
-        grant_data = self.grant_management.get_grant_data(selected_grant)  # Assuming get_grant_data(grant_name) returns a dictionary
+        grant_data = self.grant_management.get_grant_data(selected_grant)
 
         if grant_data:
             total_grant_amount = grant_data['Total Balance']
-            updated_cost = grant_data.get('Allocated Costs', 0) + selected_sum
+            updated_cost = grant_data.get('Allocated Costs', 0).iloc[0] + selected_sum
             net_amount = total_grant_amount - updated_cost
 
             # Update grant data with the allocated costs
@@ -213,11 +217,3 @@ class ExcelHandler:
             QMessageBox.information(self.parent, "Costs Allocated", f"Successfully allocated ${selected_sum:.2f} to the {selected_grant} grant.")
         else:
             QMessageBox.warning(self.parent, "Grant Not Found", f"The selected grant {selected_grant} could not be found.")
-
-    def get_grant_data(self, grant_name):
-        """Method to retrieve the grant data (needs to be defined in the grant management class)."""
-        return self.grant_management.get_grant_data(grant_name)
-    
-    def update_grant_data(self, grant_name, key, value):
-        """Method to update the grant data (needs to be defined in the grant management class)."""
-        self.grant_management.update_grant_data(grant_name, key, value)
