@@ -3,18 +3,20 @@ import pandas as pd
 import re
 from PyQt5.QtWidgets import (
     QDialog, QFileDialog, QVBoxLayout, QTabWidget, QTableWidget, QTableWidgetItem, 
-    QMessageBox, QLabel, QHBoxLayout, QHeaderView, QDateEdit, QPushButton, QComboBox
+    QMessageBox, QLabel, QHBoxLayout, QHeaderView, QDateEdit, QPushButton, QComboBox, QListWidget
 )
 from PyQt5.QtCore import Qt, QDate
 
 class ExcelHandler:
-    def __init__(self, parent, grant_management):
+    def __init__(self, parent, grant_management, save_directory="uploaded_files"):
         self.parent = parent
         self.grant_management = grant_management
         self.total_cost = 0
         self.selected_sum_label = None
         self.sheet_data = None
         self.saved_excel_sheets = {}  # Dictionary to store saved Excel sheets
+        self.save_directory = save_directory
+        os.makedirs(self.save_directory, exist_ok=True)
 
     def upload_excel(self):
         options = QFileDialog.Options()
@@ -23,17 +25,24 @@ class ExcelHandler:
         
         if file_path:
             try:
+                # Copy the uploaded file to the save directory
+                file_name = os.path.basename(file_path)
+                saved_file_path = os.path.join(self.save_directory, file_name)
+                if not os.path.exists(saved_file_path):
+                    with open(saved_file_path, 'wb') as f:
+                        f.write(open(file_path, 'rb').read())
+                
                 # Read all sheets from the Excel file
-                excel_data = pd.read_excel(file_path, sheet_name=None)
+                excel_data = pd.read_excel(saved_file_path, sheet_name=None)
                 
                 # Remove empty tabs/sheets
                 excel_data = {name: data for name, data in excel_data.items() if not data.empty}
 
                 # Save the uploaded sheets to the dictionary
-                self.saved_excel_sheets.update(excel_data)
+                self.saved_excel_sheets[file_name] = excel_data
 
                 # Display the contents
-                self.display_excel_contents(self.saved_excel_sheets)
+                self.display_excel_contents(excel_data)
             except Exception as e:
                 QMessageBox.critical(self.parent, "Error", f"An error occurred while uploading the Excel file: {str(e)}")
 
@@ -195,6 +204,7 @@ class ExcelHandler:
         else:
             QMessageBox.warning(self.parent, "Cost Column Missing", "'Cost' column not found in the filtered data.")
 
+
     def allocate_costs_to_grant(self):
         """Allocate the selected costs to the selected grant."""
         selected_grant = self.grant_combo.currentText()
@@ -202,13 +212,13 @@ class ExcelHandler:
 
         grant_data = self.grant_management.get_grant_data(selected_grant)
 
-        if grant_data:
-            total_grant_amount = grant_data['Total Balance']
-            updated_cost = grant_data.get('Allocated Costs', 0).iloc[0] + selected_sum
-            net_amount = total_grant_amount - updated_cost
+        if grant_data is not None:
+            total_grant_amount = grant_data['Total Balance'].iloc[0]
+            allocated_cost = grant_data.get('Allocated Costs', 0).iloc[0] + selected_sum
+            net_amount = total_grant_amount - allocated_cost
 
             # Update grant data with the allocated costs
-            self.grant_management.update_grant_data(selected_grant, 'Allocated Costs', updated_cost)
+            self.grant_management.update_grant_data(selected_grant, 'Allocated Costs', allocated_cost)
             self.grant_management.update_grant_data(selected_grant, 'Net Amount', net_amount)
 
             # Update the UI with the net amount
@@ -217,3 +227,45 @@ class ExcelHandler:
             QMessageBox.information(self.parent, "Costs Allocated", f"Successfully allocated ${selected_sum:.2f} to the {selected_grant} grant.")
         else:
             QMessageBox.warning(self.parent, "Grant Not Found", f"The selected grant {selected_grant} could not be found.")
+
+    def display_saved_files(self):
+        """Display a list of previously uploaded Excel files."""
+        dialog = QDialog(self.parent)
+        dialog.setWindowTitle("Previously Uploaded Excel Files")
+        dialog.setStyleSheet("background-color: #cce7ff;")
+        dialog.resize(400, 300)
+
+        layout = QVBoxLayout()
+
+        file_list_widget = QListWidget()
+        file_list_widget.setStyleSheet("font-size: 14px; color: #333; background-color: #f9f9f9;")
+
+        # Populate the list widget with the saved file names
+        for file_name in os.listdir(self.save_directory):
+            if file_name.endswith(".xlsx"):
+                file_list_widget.addItem(file_name)
+
+        layout.addWidget(file_list_widget)
+
+        open_button = QPushButton("Open Selected File")
+        open_button.setStyleSheet("font-size: 16px; color: white; background-color: #4CAF50;")
+        open_button.clicked.connect(lambda: self.open_selected_file(file_list_widget))
+        layout.addWidget(open_button)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+    def open_selected_file(self, file_list_widget):
+        """Open and display the selected file from the list."""
+        selected_file = file_list_widget.currentItem().text()
+
+        if selected_file:
+            file_path = os.path.join(self.save_directory, selected_file)
+            try:
+                # Load the selected file
+                excel_data = pd.read_excel(file_path, sheet_name=None)
+                self.display_excel_contents(excel_data)
+            except Exception as e:
+                QMessageBox.critical(self.parent, "Error", f"An error occurred while opening the Excel file: {str(e)}")
+        else:
+            QMessageBox.warning(self.parent, "No Selection", "Please select a file to open.")

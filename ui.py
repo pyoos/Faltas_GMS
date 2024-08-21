@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from datetime import datetime
 from grant_management import GrantManagement
+from excel_handler import ExcelHandler  # Import ExcelHandler
 
 class GrantManagementApp(QMainWindow):
     def __init__(self):
@@ -19,6 +20,9 @@ class GrantManagementApp(QMainWindow):
 
         # Initialize GrantManagement
         self.grant_management = GrantManagement()
+
+        # Initialize ExcelHandler
+        self.excel_handler = ExcelHandler(self, self.grant_management)
 
         # Main layout
         layout = QVBoxLayout()
@@ -69,8 +73,13 @@ class GrantManagementApp(QMainWindow):
 
         upload_btn = QPushButton("Upload Inventory Excel File")
         upload_btn.setStyleSheet(button_style)
-        upload_btn.clicked.connect(self.upload_excel)
+        upload_btn.clicked.connect(self.excel_handler.upload_excel)  # Linked to ExcelHandler's upload_excel method
         layout.addWidget(upload_btn)
+
+        display_saved_files_btn = QPushButton("Display Saved Excel Files")
+        display_saved_files_btn.setStyleSheet(button_style)
+        display_saved_files_btn.clicked.connect(self.excel_handler.display_saved_files)  # Linked to ExcelHandler's display_saved_files method
+        layout.addWidget(display_saved_files_btn)
 
         add_rule_btn = QPushButton("Add Spending Rule")
         add_rule_btn.setStyleSheet(button_style)
@@ -216,8 +225,6 @@ class GrantManagementApp(QMainWindow):
         button_box.accepted.connect(lambda: self.save_grant(dialog, grant_id_input.text(), grant_name_input.text(),
                                                            total_balance_input.text(), items_list_widget))
         button_box.rejected.connect(dialog.reject)
-
-        dialog.setLayout(layout)
         dialog.exec_()
 
         self.update_timestamp()  # Update timestamp after saving
@@ -240,49 +247,6 @@ class GrantManagementApp(QMainWindow):
             dialog.accept()
         except ValueError:
             QMessageBox.warning(self, "Invalid Input", "Please enter a valid number for the total balance.")
-
-    def upload_excel(self):
-        # Open a file dialog to select an Excel file
-        options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
-        file_path, _ = QFileDialog.getOpenFileName(self, "Upload Inventory Excel File", "", "Excel Files (*.xlsx);;All Files (*)", options=options)
-        
-        if file_path:
-            try:
-                # Read all sheets from the Excel file
-                excel_data = pd.read_excel(file_path, sheet_name=None)
-                self.display_excel_contents(excel_data)
-
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"An error occurred while uploading the Excel file: {str(e)}")
-
-    def display_excel_contents(self, excel_data):
-        """Display the contents of the Excel file in the GUI, separating by sheets."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Excel File Contents")
-        dialog.setStyleSheet("background-color: #cce7ff;")
-        dialog.resize(1000, 700)
-
-        tab_widget = QTabWidget()
-        tab_widget.setStyleSheet("font-size: 14px;")
-
-        for sheet_name, sheet_data in excel_data.items():
-            table_widget = QTableWidget()
-            table_widget.setRowCount(sheet_data.shape[0])
-            table_widget.setColumnCount(sheet_data.shape[1])
-            table_widget.setHorizontalHeaderLabels(sheet_data.columns)
-
-            for i in range(sheet_data.shape[0]):
-                for j in range(sheet_data.shape[1]):
-                    table_widget.setItem(i, j, QTableWidgetItem(str(sheet_data.iat[i, j])))
-
-            tab_widget.addTab(table_widget, sheet_name)
-
-        layout = QVBoxLayout()
-        layout.addWidget(tab_widget)
-
-        dialog.setLayout(layout)
-        dialog.exec_()
 
     def choose_grant_for_rule(self):
         if self.grant_management.grant_data.empty:
@@ -324,7 +288,6 @@ class GrantManagementApp(QMainWindow):
 
         dialog.setLayout(layout)
         dialog.exec_()
-
 
     def add_rule(self, grant_id=None):
         """Add spending rules to a selected grant."""
@@ -417,7 +380,6 @@ class GrantManagementApp(QMainWindow):
 
         dialog.setLayout(layout)
         dialog.exec_()
-
 
     def add_item_to_rules(self, rules_list_widget, item_input, idx):
         item = item_input.text().strip()
