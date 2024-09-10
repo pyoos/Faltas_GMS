@@ -172,14 +172,27 @@ class ExcelHandler:
         dialog.setLayout(layout)
         dialog.exec_()
 
-    def update_selected_sum(self, item):
-        """Update the sum of selected costs."""
+    def update_selected_sum(self, table_widget):
+        """Update the sum of selected costs based on highlighted rows."""
         selected_sum = 0.0
-        for selected_item in item.tableWidget().selectedItems():
-            try:
-                selected_sum += float(re.sub(r'[^\d.]', '', selected_item.text()))
-            except ValueError:
-                continue  # Ignore non-numeric cells
+        # Ensure we're using the QTableWidget to get the headers
+        if isinstance(table_widget, QTableWidget):
+            # Find the index of the 'cost' column
+            headers = [table_widget.horizontalHeaderItem(i).text().lower() for i in range(table_widget.columnCount())]
+            cost_column_index = headers.index('cost') if 'cost' in headers else -1
+
+            if cost_column_index != -1:
+                # Sum the costs of the selected rows
+                selected_rows = set(item.row() for item in table_widget.selectedItems())  # Get unique selected rows
+
+                for row in selected_rows:
+                    cost_item = table_widget.item(row, cost_column_index)
+                    if cost_item:
+                        try:
+                            cost_value = float(re.sub(r'[^\d.]', '', cost_item.text()))
+                            selected_sum += cost_value
+                        except ValueError:
+                            continue  # Skip non-numeric values
 
         self.selected_sum_label.setText(f"Selected Sum: ${selected_sum:.2f}")
 
@@ -214,14 +227,24 @@ class ExcelHandler:
 
         if grant_data is not None:
             total_grant_amount = grant_data['Total Balance'].iloc[0]
-            allocated_cost = grant_data.get('Allocated Costs', 0).iloc[0] + selected_sum
-            net_amount = total_grant_amount - allocated_cost
 
-            # Update grant data with the allocated costs
-            self.grant_management.update_grant_data(selected_grant, 'Allocated Costs', allocated_cost)
+            # Safely access 'Allocated Costs' and handle cases where it may not exist
+            if 'Allocated Costs' in grant_data.columns:
+                allocated_cost = grant_data['Allocated Costs'].iloc[0]
+            else:
+                # Initialize 'Allocated Costs' to 0 if the column does not exist
+                allocated_cost = 0
+                self.grant_management.update_grant_data(selected_grant, 'Allocated Costs', allocated_cost)
+
+            # Add the selected sum to the allocated costs
+            updated_allocated_cost = allocated_cost + selected_sum
+            net_amount = total_grant_amount - updated_allocated_cost
+
+            # Update grant data with the new allocated costs and net amount
+            self.grant_management.update_grant_data(selected_grant, 'Allocated Costs', updated_allocated_cost)
             self.grant_management.update_grant_data(selected_grant, 'Net Amount', net_amount)
 
-            # Update the UI with the net amount
+            # Update the UI with the new net amount
             self.net_amount_label.setText(f"Net Amount in Grant: ${net_amount:.2f}")
 
             QMessageBox.information(self.parent, "Costs Allocated", f"Successfully allocated ${selected_sum:.2f} to the {selected_grant} grant.")

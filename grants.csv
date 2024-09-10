@@ -1,10 +1,10 @@
-Grant ID,Grant Name,Total Balance,Allowed Items
-R37,R37 (Merit Award),71170.0,"['Weisi - POL-Theta', 'Rahul-EVOSIGNALS']"
-DoD,DoD (Targeting A3A-induced CIN + Metastasis),115149.0,"['Abhishek - APOBEC Metastasis', 'Rahul - APOBEC Metastasis']"
-SCCI16,SCC Targeting CIN,87323.0,"['Abhishek - APOBEC met', 'Rahul - APOBEC met']"
-CTSC Kristy Richards Precision Medicine,CTSC (AI),100000.0,[]
-BCAN Innovation Award,BCAN Bio-Digital Avatars,100000.0,['Soonho organoid EVOSIGNALS']
-DOD Peer Reviewed Cancer research Program Career Development Award,Weisi - DoD,30000.0,['Weisi ecDNA']
-Faltas EIPM,EIPM (WCM),464616.0,"['ADC-siRNA Jaekwon', 'Kyle UTUC', 'Mohamed (CDK4/6i)']"
-Faltas MCC,MCC (WCM),750000.0,"['Soonho', 'Liquid Nitrogen', 'Tubes']"
-Faltas HemOnc,HemOnc (WCM),1367951.0,"['Lab Coats', 'Tips - Consumables', 'Media and Cell Culture', 'CDADC1']"
+Grant ID,Grant Name,Total Balance,Allowed Items,Allocated Costs,Net Amount
+R37,R37 (Merit Award),71170.0,"['Weisi - POL-Theta', 'Rahul-EVOSIGNALS']",0.0,71170.0
+DoD,DoD (Targeting A3A-induced CIN + Metastasis),115149.0,"['Abhishek - APOBEC Metastasis', 'Rahul - APOBEC Metastasis']",,
+SCCI16,SCC Targeting CIN,87323.0,"['Abhishek - APOBEC met', 'Rahul - APOBEC met']",,
+CTSC Kristy Richards Precision Medicine,CTSC (AI),100000.0,[],,
+BCAN Innovation Award,BCAN Bio-Digital Avatars,100000.0,['Soonho organoid EVOSIGNALS'],,
+DOD Peer Reviewed Cancer research Program Career Development Award,Weisi - DoD,30000.0,['Weisi ecDNA'],,
+Faltas EIPM,EIPM (WCM),464616.0,"['ADC-siRNA Jaekwon', 'Kyle UTUC', 'Mohamed (CDK4/6i)']",,
+Faltas MCC,MCC (WCM),750000.0,"['Soonho', 'Liquid Nitrogen', 'Tubes']",,
+Faltas HemOnc,HemOnc (WCM),1367951.0,"['Lab Coats', 'Tips - Consumables', 'Media and Cell Culture', 'CDADC1']",,

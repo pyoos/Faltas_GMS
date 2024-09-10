@@ -10,9 +10,11 @@ from PyQt5.QtCore import Qt, QDate
 class GrantManagement:
     def __init__(self, directory_path='/Users/paul/Desktop/Faltas_GMS'):
         self.directory_path = directory_path
-        self.file_path = os.path.join(self.directory_path, 'grants.csv')  # Set the file path to the specific directory
+        self.file_path = os.path.join(self.directory_path, 'grants.csv')
+        self.costs_file_path = os.path.join(self.directory_path, 'allocated_costs.csv')  # New file for costs
         self.required_columns = ['Grant ID', 'Grant Name', 'Total Balance', 'Allowed Items']
         self.grant_data = self.load_grants()
+        self.allocated_costs = self.load_allocated_costs()
 
     def select_csv_file(self):
         """Search for all CSV files in the directory and prompt the user to select one."""
@@ -46,11 +48,32 @@ class GrantManagement:
                 return self.initialize_csv()
         else:
             return self.initialize_csv()
+        
+    def load_allocated_costs(self):
+        """Load allocated costs from a CSV file."""
+        if os.path.exists(self.costs_file_path):
+            try:
+                data = pd.read_csv(self.costs_file_path)
+                if 'Grant ID' in data.columns and 'Cost' in data.columns:
+                    return data
+                else:
+                    return self.initialize_costs_csv()
+            except Exception as e:
+                print(f"Error loading allocated costs: {str(e)}")
+                return self.initialize_costs_csv()
+        else:
+            return self.initialize_costs_csv()
 
     def initialize_csv(self):
         data = pd.DataFrame(columns=self.required_columns)
         if self.file_path:
             data.to_csv(self.file_path, index=False)
+        return data
+
+    def initialize_costs_csv(self):
+        """Initialize the costs CSV with default columns."""
+        data = pd.DataFrame(columns=['Grant ID', 'Cost'])
+        data.to_csv(self.costs_file_path, index=False)
         return data
 
     def delete_grant(self, grant_id):
@@ -65,6 +88,29 @@ class GrantManagement:
     def save_grants(self):
         if self.file_path:
             self.grant_data.to_csv(self.file_path, index=False)
+
+
+    def save_allocated_costs(self):
+        """Save the allocated costs to the CSV file."""
+        if self.costs_file_path:
+            self.allocated_costs.to_csv(self.costs_file_path, index=False)
+
+    def add_allocated_cost(self, grant_id, cost):
+        """Add a new allocated cost to the list for a specific grant."""
+        new_cost = pd.DataFrame({'Grant ID': [grant_id], 'Cost': [cost]})
+        self.allocated_costs = pd.concat([self.allocated_costs, new_cost], ignore_index=True)
+        self.save_allocated_costs()
+
+    def remove_allocated_cost(self, grant_id, cost):
+        """Remove an allocated cost from the list for a specific grant."""
+        self.allocated_costs = self.allocated_costs[
+            ~((self.allocated_costs['Grant ID'] == grant_id) & (self.allocated_costs['Cost'] == cost))
+        ]
+        self.save_allocated_costs()
+
+    def get_allocated_costs(self, grant_id):
+        """Retrieve allocated costs for a specific grant."""
+        return self.allocated_costs[self.allocated_costs['Grant ID'] == grant_id]
 
     def show_grants(self):
         """Show all the grants in the system."""

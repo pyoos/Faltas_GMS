@@ -88,6 +88,17 @@ class GrantManagementApp(QMainWindow):
         add_rule_btn.clicked.connect(self.choose_grant_for_rule)
         layout.addWidget(add_rule_btn)
 
+        # View Allocated Costs Button
+        view_allocated_btn = QPushButton("View Allocated Costs")
+        view_allocated_btn.setStyleSheet(button_style)
+        view_allocated_btn.clicked.connect(self.view_allocated_costs)
+        layout.addWidget(view_allocated_btn)
+
+        # Remove Allocated Costs Button
+        remove_allocated_btn = QPushButton("Remove Allocated Costs from Grant")
+        remove_allocated_btn.setStyleSheet(button_style)
+        remove_allocated_btn.clicked.connect(self.remove_allocated_costs_dialog)
+        layout.addWidget(remove_allocated_btn)
 
         # Central widget
         central_widget = QWidget()
@@ -119,6 +130,76 @@ class GrantManagementApp(QMainWindow):
             QMessageBox.information(self, "No Grants", "There are no grants in the database.")
         else:
             self.display_grants_popup()
+
+
+    def view_allocated_costs(self):
+        """Display allocated costs for each grant."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("View Allocated Costs")
+        dialog.setStyleSheet("background-color: #cce7ff;")
+        dialog.resize(400, 300)
+
+        layout = QVBoxLayout(dialog)
+        list_widget = QListWidget()
+        list_widget.setStyleSheet("font-size: 16px; color: black; background-color: white;")
+
+        # Populate the list widget with grants and their allocated costs
+        for _, row in self.grant_management.grant_data.iterrows():
+            allocated_costs = row.get('Allocated Costs', 0)
+            list_widget.addItem(f"{row['Grant Name']} - Allocated: ${allocated_costs:.2f}")
+
+        layout.addWidget(list_widget)
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+    def remove_allocated_costs_dialog(self):
+        """Dialog to select and remove allocated costs from a grant."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Remove Allocated Costs")
+        dialog.setStyleSheet("background-color: #cce7ff;")
+        dialog.resize(400, 300)
+
+        layout = QVBoxLayout(dialog)
+        list_widget = QListWidget()
+        list_widget.setStyleSheet("font-size: 16px; color: black; background-color: white;")
+
+        # Populate the list widget with grants
+        for _, row in self.grant_management.grant_data.iterrows():
+            list_widget.addItem(row['Grant Name'])
+
+        layout.addWidget(list_widget)
+
+        remove_button = QPushButton("Remove Allocated Costs")
+        remove_button.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                background-color: #f44336;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #e53935;
+            }
+        """)
+        remove_button.clicked.connect(lambda: self.remove_allocated_costs(list_widget.currentItem(), dialog))
+        layout.addWidget(remove_button)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+    def remove_allocated_costs(self, selected_item, dialog):
+        """Remove allocated costs from the selected grant."""
+        if selected_item:
+            grant_name = selected_item.text()
+            grant_data = self.grant_management.get_grant_data(grant_name)
+            if not grant_data.empty:
+                # Reset the allocated costs to zero
+                self.grant_management.update_grant_data(grant_name, 'Allocated Costs', 0)
+                QMessageBox.information(self, "Success", f"Allocated costs removed from {grant_name}.")
+                dialog.accept()
+            else:
+                QMessageBox.warning(self, "Error", f"No data found for the selected grant: {grant_name}")
 
     def display_grants_popup(self):
         dialog = QDialog(self)
