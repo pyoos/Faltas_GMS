@@ -53,6 +53,15 @@ class GrantManagement:
             data.to_csv(self.file_path, index=False)
         return data
 
+    def delete_grant(self, grant_id):
+        """Delete a grant from the system by Grant ID."""
+        if grant_id in self.grant_data['Grant ID'].values:
+            self.grant_data = self.grant_data[self.grant_data['Grant ID'] != grant_id]
+            self.save_grants()
+            return True
+        else:
+            return False
+
     def save_grants(self):
         if self.file_path:
             self.grant_data.to_csv(self.file_path, index=False)
@@ -151,43 +160,65 @@ class GrantManagement:
         else:
             QMessageBox.warning(None, "Duplicate Grant", f"The grant '{grant_name}' already exists.")
 
-    def delete_grant(self, grant_name):
-        """Delete a grant from the system."""
-        self.grant_data = self.grant_data[self.grant_data['Grant Name'] != grant_name]
-        self.save_grants()
+
+    def delete_grant(self, grant_id):
+        """Delete a grant from the system by Grant ID."""
+        if grant_id in self.grant_data['Grant ID'].values:
+            # Remove the grant from the DataFrame
+            self.grant_data = self.grant_data[self.grant_data['Grant ID'] != grant_id]
+            self.save_grants()  # Save changes to the CSV
+            return True
+        else:
+            return False
 
     def add_initial_grants(self):
         """Prompt the user to input a new grant."""
         dialog = QDialog()
         dialog.setWindowTitle("Add New Grant")
+        dialog.setStyleSheet("background-color: #cce7ff;")  # Optional: Set background color
+        dialog.resize(400, 300)  # Optional: Set initial size
 
         layout = QVBoxLayout()
 
+        # Grant ID Input
+        label_id = QLabel("Enter Grant ID:")
+        layout.addWidget(label_id)
+        grant_id_input = QLineEdit()
+        layout.addWidget(grant_id_input)
+
+        # Grant Name Input
         label_name = QLabel("Enter Grant Name:")
         layout.addWidget(label_name)
-
         grant_name_input = QLineEdit()
         layout.addWidget(grant_name_input)
 
+        # Total Balance Input
         label_balance = QLabel("Enter Total Balance:")
         layout.addWidget(label_balance)
-
         grant_balance_input = QLineEdit()
         layout.addWidget(grant_balance_input)
+
+        # Allowed Items Input
+        label_items = QLabel("Enter Allowed Items (comma-separated):")
+        layout.addWidget(label_items)
+        allowed_items_input = QLineEdit()
+        layout.addWidget(allowed_items_input)
 
         add_button = QPushButton("Add Grant")
         layout.addWidget(add_button)
 
         def add_grant_action():
-            grant_name = grant_name_input.text()
+            grant_id = grant_id_input.text().strip()
+            grant_name = grant_name_input.text().strip()
+            allowed_items = [item.strip() for item in allowed_items_input.text().split(',')]
             try:
-                total_balance = float(grant_balance_input.text())
-                if grant_name:
-                    self.add_grant(grant_name, total_balance)
+                total_balance = float(grant_balance_input.text().strip())
+                if grant_id and grant_name:
+                    self.add_grant(grant_id, grant_name, total_balance, allowed_items)
                     QMessageBox.information(dialog, "Success", f"Grant '{grant_name}' added successfully.")
                     dialog.accept()
                 else:
-                    QMessageBox.warning(dialog, "Input Error", "Grant name cannot be empty.")
+                    QMessageBox.warning(dialog, "Input Error", "Grant ID and Grant Name cannot be empty.")
             except ValueError:
                 QMessageBox.warning(dialog, "Input Error", "Please enter a valid number for total balance.")
 
@@ -195,6 +226,7 @@ class GrantManagement:
 
         dialog.setLayout(layout)
         dialog.exec_()
+
 
     def show_grants(self):
         """Show all the grants in the system."""
