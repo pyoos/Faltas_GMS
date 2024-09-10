@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from datetime import datetime
 from grant_management import GrantManagement
+from excel_handler import ExcelHandler  # Assuming ExcelHandler is in a separate module
+
 
 class GrantManagementApp(QMainWindow):
     def __init__(self):
@@ -19,6 +21,9 @@ class GrantManagementApp(QMainWindow):
 
         # Initialize GrantManagement
         self.grant_management = GrantManagement()
+
+        # Initialize ExcelHandler
+        self.excel_handler = ExcelHandler(self, self.grant_management)
 
         # Main layout
         layout = QVBoxLayout()
@@ -58,11 +63,24 @@ class GrantManagementApp(QMainWindow):
         show_btn.clicked.connect(self.show_grants)
         layout.addWidget(show_btn)
 
-        # Upload Grant Button
+        # Delete Grant Button
+        delete_grant_btn = QPushButton("Delete Existing Grant")
+        delete_grant_btn.setStyleSheet(button_style)
+        delete_grant_btn.clicked.connect(self.delete_grant_dialog)
+        layout.addWidget(delete_grant_btn)
+
+        # Upload Excel Button
         upload_btn = QPushButton("Upload Inventory Excel File")
         upload_btn.setStyleSheet(button_style)
-        upload_btn.clicked.connect(self.upload_excel)
+        upload_btn.clicked.connect(self.excel_handler.upload_excel)  # Link to ExcelHandler's upload_excel method
         layout.addWidget(upload_btn)
+
+        # Display Saved Files Button
+        display_saved_files_btn = QPushButton("Display Saved Excel Files")
+        display_saved_files_btn.setStyleSheet(button_style)
+        display_saved_files_btn.clicked.connect(self.excel_handler.display_saved_files)  # Link to ExcelHandler's display_saved_files method
+        layout.addWidget(display_saved_files_btn)
+
 
         # Add Spending Rule Button
         add_rule_btn = QPushButton("Add Spending Rule")
@@ -70,11 +88,6 @@ class GrantManagementApp(QMainWindow):
         add_rule_btn.clicked.connect(self.choose_grant_for_rule)
         layout.addWidget(add_rule_btn)
 
-        # Delete Grant Button
-        delete_grant_btn = QPushButton("Delete Existing Grant")
-        delete_grant_btn.setStyleSheet(button_style)
-        delete_grant_btn.clicked.connect(self.delete_grant_dialog)
-        layout.addWidget(delete_grant_btn)
 
         # Central widget
         central_widget = QWidget()
