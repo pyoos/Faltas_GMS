@@ -12,6 +12,7 @@ from grant_management import GrantManagement
 from excel_handler import ExcelHandler  # Assuming ExcelHandler is in a separate module
 
 
+
 class GrantManagementApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -440,11 +441,12 @@ class GrantManagementApp(QMainWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle("Excel File Contents")
         dialog.setStyleSheet("background-color: #cce7ff;")
-        dialog.resize(1000, 700)
+        dialog.resize(1200, 700)
 
+        layout = QHBoxLayout()
+
+        # Excel Sheets Display
         tab_widget = QTabWidget()
-        tab_widget.setStyleSheet("font-size: 14px;")
-
         for sheet_name, sheet_data in excel_data.items():
             table_widget = QTableWidget()
             table_widget.setRowCount(sheet_data.shape[0])
@@ -456,12 +458,28 @@ class GrantManagementApp(QMainWindow):
                     table_widget.setItem(i, j, QTableWidgetItem(str(sheet_data.iat[i, j])))
 
             tab_widget.addTab(table_widget, sheet_name)
-
-        layout = QVBoxLayout()
         layout.addWidget(tab_widget)
+
+        # Buttons for Actions
+        button_layout = QVBoxLayout()
+        group_analyze_btn = QPushButton("Group and Analyze")
+        group_analyze_btn.setStyleSheet("font-size: 16px; background-color: #4CAF50; color: white;")
+        group_analyze_btn.clicked.connect(lambda: self.launch_group_analyze())
+        button_layout.addWidget(group_analyze_btn)
+
+        layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
         dialog.exec_()
+
+    def launch_group_analyze(self):
+        """Launch the GroupAnalyze functionality."""
+        if self.excel_handler.sheet_data is not None:
+            analyzer = GroupAnalyze(self, self.excel_handler.sheet_data)
+            analyzer.show_group_analysis()
+        else:
+            QMessageBox.warning(self, "No Data", "Please upload and select an Excel sheet first.")
+
 
     def choose_grant_for_rule(self):
         if self.grant_management.grant_data.empty:
@@ -629,6 +647,8 @@ class GrantManagementApp(QMainWindow):
         super().closeEvent(event)
         QApplication.quit()
         sys.exit()
+
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

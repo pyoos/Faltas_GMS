@@ -521,3 +521,43 @@ class ExcelHandler:
             QMessageBox.information(self.parent, "Costs Allocated", f"Successfully allocated ${selected_sum:.2f} to the {selected_grant} grant.")
         else:
             QMessageBox.warning(self.parent, "Grant Not Found", f"The selected grant {selected_grant} could not be found.")
+
+    def integrate_group_analyze_with_excel(app_instance):
+        def display_excel_contents_with_buttons(excel_data):
+            """Display the Excel file with analysis buttons on the side."""
+            dialog = QDialog(app_instance)
+            dialog.setWindowTitle("Excel File Contents")
+            dialog.resize(1200, 700)
+
+            layout = QHBoxLayout()
+
+            tab_widget = QTableWidget()
+
+            for sheet_name, sheet_data in excel_data.items():
+                table_widget = QTableWidget()
+                table_widget.setRowCount(sheet_data.shape[0])
+                table_widget.setColumnCount(sheet_data.shape[1])
+                table_widget.setHorizontalHeaderLabels(sheet_data.columns)
+
+                for i in range(sheet_data.shape[0]):
+                    for j in range(sheet_data.shape[1]):
+                        table_widget.setItem(i, j, QTableWidgetItem(str(sheet_data.iat[i, j])))
+
+                tab_widget.addTab(table_widget, sheet_name)
+
+            layout.addWidget(tab_widget)
+
+            # Add Group and Analyze Buttons
+            button_layout = QVBoxLayout()
+            group_analyze_btn = QPushButton("Group and Analyze")
+            group_analyze_btn.setStyleSheet(app_instance.button_style())
+            group_analyze_btn.clicked.connect(lambda: GroupAnalyze(app_instance, app_instance.excel_handler.sheet_data).show_group_analysis())
+            button_layout.addWidget(group_analyze_btn)
+
+            layout.addLayout(button_layout)
+
+            dialog.setLayout(layout)
+            dialog.exec_()
+
+        app_instance.display_excel_contents_with_buttons = display_excel_contents_with_buttons
+        app_instance.excel_handler.parent = app_instance
